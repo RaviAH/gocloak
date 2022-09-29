@@ -17,7 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 
-	"github.com/Nerzal/gocloak/v11/pkg/jwx"
+	"github.com/RaviAH/gocloak/pkg/jwx"
 )
 
 type gocloak struct {
@@ -178,8 +178,8 @@ func NewClient(basePath string, options ...func(*gocloak)) GoCloak {
 	}
 
 	c.Config.CertsInvalidateTime = 10 * time.Minute
-	c.Config.authAdminRealms = makeURL("auth", "admin", "realms")
-	c.Config.authRealms = makeURL("auth", "realms")
+	c.Config.authAdminRealms = makeURL("admin", "realms")
+	c.Config.authRealms = makeURL("realms")
 	c.Config.tokenEndpoint = makeURL("protocol", "openid-connect", "token")
 	c.Config.logoutEndpoint = makeURL("protocol", "openid-connect", "logout")
 	c.Config.openIDConnect = makeURL("protocol", "openid-connect")
@@ -3816,10 +3816,13 @@ func (client *gocloak) UpdateRequiredAction(ctx context.Context, token string, r
 	if NilOrEmpty(requiredAction.ProviderID) {
 		return errors.New("providerId is required for updating a required action")
 	}
-	_, err := client.getRequestWithBearerAuth(ctx, token).
+	resp, err := client.getRequestWithBearerAuth(ctx, token).
 		SetBody(requiredAction).
 		Put(client.getAdminRealmURL(realm, "authentication", "required-actions", *requiredAction.ProviderID))
 
+	if err := checkForError(resp, err, errMessage); err != nil {
+		return err
+	}
 	return err
 }
 
